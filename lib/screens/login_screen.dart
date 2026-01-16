@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
@@ -46,30 +47,100 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFFF8F5F2), // Warmer 'bone' white background
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 50),
-                // Logo and welcome
-                _buildHeader(),
-                const SizedBox(height: 32),
-                // Login form card
-                _buildLoginForm(),
-                const SizedBox(height: 20),
-                // Register link
-                _buildRegisterLink(),
-                const SizedBox(height: 32),
-              ],
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          // Ambient Background
+          _buildBackgroundOrbs(),
+
+          // Content
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 50),
+                  // Logo and welcome
+                  _buildHeader(),
+                  const SizedBox(height: 32),
+                  // Login form card
+                  _buildLoginForm(),
+                  const SizedBox(height: 20),
+                  // Register link
+                  _buildRegisterLink(),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackgroundOrbs() {
+    return Stack(
+      children: [
+        // Top Right Orange Glow
+        Positioned(
+          top: -100,
+          right: -100,
+          child: Container(
+            width: 300,
+            height: 300,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppColors.accentOrange.withOpacity(0.3),
+                  AppColors.accentOrange.withOpacity(0),
+                ],
+              ),
             ),
           ),
         ),
-      ),
+        // Center Left Primary Glow
+        Positioned(
+          top: 200,
+          left: -150,
+          child: Container(
+            width: 400,
+            height: 400,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppColors.primaryLight.withOpacity(0.2),
+                  AppColors.primaryLight.withOpacity(0),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Bottom Right Teal Glow
+        Positioned(
+          bottom: -100,
+          right: -50,
+          child: Container(
+            width: 350,
+            height: 350,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppColors.accentTeal.withOpacity(0.2),
+                  AppColors.accentTeal.withOpacity(0),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Blur Mesh
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+          child: Container(color: Colors.transparent),
+        ),
+      ],
     );
   }
 
