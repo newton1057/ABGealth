@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
@@ -8,7 +11,11 @@ import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 import 'widgets/modern_glass_card.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const DemoodApp());
 }
 
@@ -27,30 +34,34 @@ class DemoodApp extends StatelessWidget {
 }
 
 /// Wrapper widget that handles authentication state
-class AuthWrapper extends StatefulWidget {
+class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
-  State<AuthWrapper> createState() => _AuthWrapperState();
-}
-
-class _AuthWrapperState extends State<AuthWrapper> {
-  bool _isLoggedIn = false;
-
-  void _handleLogin() {
-    setState(() => _isLoggedIn = true);
-  }
-
-  void _handleLogout() {
-    setState(() => _isLoggedIn = false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_isLoggedIn) {
-      return const AppShell();
-    }
-    return LoginScreen(onLoginSuccess: _handleLogin);
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Show loading while checking auth state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(
+                color: AppColors.mintBright,
+              ),
+            ),
+          );
+        }
+
+        // User is logged in
+        if (snapshot.hasData) {
+          return const AppShell();
+        }
+
+        // User is not logged in
+        return const LoginScreen();
+      },
+    );
   }
 }
 

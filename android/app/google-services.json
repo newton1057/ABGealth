@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1093507790060",
+    "project_id": "demoodai",
+    "storage_bucket": "demoodai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1093507790060:android:d52f711ac595fb965861c9",
+        "android_client_info": {
+          "package_name": "com.abgealth.abgealth"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0MyM4LOJ5yCTpo3K9T7za6Gp2H5mDxCQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

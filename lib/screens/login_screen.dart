@@ -1,7 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_colors.dart';
+import '../services/auth_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -12,9 +14,7 @@ class _LoginColors {
 }
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.onLoginSuccess});
-
-  final VoidCallback onLoginSuccess;
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -24,8 +24,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isEnglish = false;
 
   @override
   void dispose() {
@@ -34,14 +36,148 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _showErrorBottomSheet(String message) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag handle
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Error icon
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.error_outline_rounded,
+                      color: AppColors.warning,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Title
+                  Text(
+                    _text(
+                      es: 'Error al iniciar sesión',
+                      en: 'Sign-in error',
+                    ),
+                    style: GoogleFonts.montserrat(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Message
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _LoginColors.mintBright,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        _text(
+                          es: 'Intentar de nuevo',
+                          en: 'Try again',
+                        ),
+                        style: GoogleFonts.montserrat(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
 
-    // Simulate login delay
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      setState(() => _isLoading = false);
-      widget.onLoginSuccess();
-    });
+    try {
+      await _authService.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      // Navigation is handled automatically by AuthWrapper
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        _showErrorBottomSheet(
+          _authService.getErrorMessage(e, isEnglish: _isEnglish),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorBottomSheet(
+          _text(
+            es: 'Ocurrió un error. Intenta de nuevo.',
+            en: 'Something went wrong. Please try again.',
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String _text({required String es, required String en}) {
+    return _isEnglish ? en : es;
+  }
+
+  String get _languageToggleLabel {
+    return _isEnglish ? 'Switch to Spanish' : 'Cambiar a inglés';
+  }
+
+  void _toggleLanguage() {
+    setState(() => _isEnglish = !_isEnglish);
   }
 
   @override
@@ -70,6 +206,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   _buildRegisterLink(),
                   const SizedBox(height: 32),
                 ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8, right: 16),
+                child: _buildLanguageToggle(),
               ),
             ),
           ),
@@ -172,6 +317,96 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildLanguageToggle() {
+    return Tooltip(
+      message: _languageToggleLabel,
+      child: Semantics(
+        button: true,
+        label: _languageToggleLabel,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _toggleLanguage,
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 44,
+              height: 44,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.card,
+                border: Border.all(color: AppColors.border),
+                boxShadow: AppColors.softShadow,
+              ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: KeyedSubtree(
+                  key: ValueKey(_isEnglish),
+                  child: _buildFlag(isEnglish: _isEnglish),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlag({required bool isEnglish}) {
+    return ClipOval(
+      child: SizedBox(
+        width: 28,
+        height: 28,
+        child: isEnglish ? _buildEnglishFlag() : _buildSpanishFlag(),
+      ),
+    );
+  }
+
+  Widget _buildSpanishFlag() {
+    const red = Color(0xFFAA151B);
+    const yellow = Color(0xFFF1BF00);
+
+    return Column(
+      children: const [
+        Expanded(child: ColoredBox(color: red)),
+        Expanded(flex: 2, child: ColoredBox(color: yellow)),
+        Expanded(child: ColoredBox(color: red)),
+      ],
+    );
+  }
+
+  Widget _buildEnglishFlag() {
+    const red = Color(0xFFCF142B);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final thickness = constraints.maxWidth * 0.28;
+
+        return Stack(
+          children: [
+            const ColoredBox(color: Colors.white),
+            Align(
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: thickness,
+                height: constraints.maxHeight,
+                child: const ColoredBox(color: red),
+              ),
+            ),
+            Align(
+              alignment: Alignment.center,
+              child: SizedBox(
+                height: thickness,
+                width: constraints.maxWidth,
+                child: const ColoredBox(color: red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildLoginForm() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -181,7 +416,10 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Iniciar sesión',
+              _text(
+                es: 'Iniciar sesión',
+                en: 'Sign in',
+              ),
               style: GoogleFonts.montserrat(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -189,7 +427,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             Text(
-              'Ingresa tus credenciales para continuar',
+              _text(
+                es: 'Ingresa tus credenciales para continuar',
+                en: 'Enter your credentials to continue',
+              ),
               style: GoogleFonts.montserrat(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -199,16 +440,28 @@ class _LoginScreenState extends State<LoginScreen> {
             // Email field
             _buildTextField(
               controller: _emailController,
-              label: 'Correo electrónico',
-              hint: 'tu@email.com',
+              label: _text(
+                es: 'Correo electrónico',
+                en: 'Email',
+              ),
+              hint: _text(
+                es: 'tu@email.com',
+                en: 'you@email.com',
+              ),
               prefixIcon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Ingresa tu correo electrónico';
+                  return _text(
+                    es: 'Ingresa tu correo electrónico',
+                    en: 'Enter your email',
+                  );
                 }
                 if (!value.contains('@') || !value.contains('.')) {
-                  return 'Ingresa un correo válido';
+                  return _text(
+                    es: 'Ingresa un correo válido',
+                    en: 'Enter a valid email',
+                  );
                 }
                 return null;
               },
@@ -217,7 +470,10 @@ class _LoginScreenState extends State<LoginScreen> {
             // Password field
             _buildTextField(
               controller: _passwordController,
-              label: 'Contraseña',
+              label: _text(
+                es: 'Contraseña',
+                en: 'Password',
+              ),
               hint: '••••••••',
               prefixIcon: Icons.lock_outline,
               obscureText: _obscurePassword,
@@ -234,10 +490,16 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Ingresa tu contraseña';
+                  return _text(
+                    es: 'Ingresa tu contraseña',
+                    en: 'Enter your password',
+                  );
                 }
                 if (value.length < 6) {
-                  return 'La contraseña debe tener al menos 6 caracteres';
+                  return _text(
+                    es: 'La contraseña debe tener al menos 6 caracteres',
+                    en: 'Password must be at least 6 characters',
+                  );
                 }
                 return null;
               },
@@ -256,7 +518,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 },
                 child: Text(
-                  '¿Olvidaste tu contraseña?',
+                  _text(
+                    es: '¿Olvidaste tu contraseña?',
+                    en: 'Forgot your password?',
+                  ),
                   style: GoogleFonts.montserrat(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -299,7 +564,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       )
                     : Text(
-                        'Iniciar sesión',
+                        _text(
+                          es: 'Iniciar sesión',
+                          en: 'Sign in',
+                        ),
                         style: GoogleFonts.montserrat(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -322,7 +590,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
-                    'o continúa con',
+                    _text(
+                      es: 'o continúa con',
+                      en: 'or continue with',
+                    ),
                     style: GoogleFonts.montserrat(
                       fontSize: 14,
                       color: AppColors.textPrimary,
@@ -358,7 +629,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         const Icon(Icons.apple, size: 24, color: Colors.white),
                         const SizedBox(width: 10),
                         Text(
-                          'Continuar con Apple',
+                          _text(
+                            es: 'Continuar con Apple',
+                            en: 'Continue with Apple',
+                          ),
                           style: GoogleFonts.montserrat(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -393,7 +667,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          'Continuar con Google',
+                          _text(
+                            es: 'Continuar con Google',
+                            en: 'Continue with Google',
+                          ),
                           style: GoogleFonts.montserrat(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -484,7 +761,10 @@ class _LoginScreenState extends State<LoginScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          '¿No tienes cuenta? ',
+          _text(
+            es: '¿No tienes cuenta? ',
+            en: "Don't have an account? ",
+          ),
           style: GoogleFonts.montserrat(
             fontSize: 14,
             color: AppColors.textPrimary,
@@ -495,13 +775,15 @@ class _LoginScreenState extends State<LoginScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    RegisterScreen(onRegisterSuccess: widget.onLoginSuccess),
+                builder: (_) => const RegisterScreen(),
               ),
             );
           },
           child: Text(
-            'Crear cuenta',
+            _text(
+              es: 'Crear cuenta',
+              en: 'Create account',
+            ),
             style: GoogleFonts.montserrat(
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,

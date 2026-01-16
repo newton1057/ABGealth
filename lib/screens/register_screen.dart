@@ -1,8 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_colors.dart';
+import '../services/auth_service.dart';
 import 'onboarding_screen.dart';
+import 'terms_conditions_screen.dart';
+import 'privacy_policy_screen.dart';
 
 // New register screen color palette (matching login)
 class _RegisterColors {
@@ -11,9 +15,7 @@ class _RegisterColors {
 }
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key, required this.onRegisterSuccess});
-
-  final VoidCallback onRegisterSuccess;
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -25,10 +27,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _authService = AuthService();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -39,15 +43,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _handleRegister() {
-    // Skip validation for demo - go directly to onboarding
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            OnboardingScreen(onRegisterSuccess: widget.onRegisterSuccess),
-      ),
-    );
+  Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!_acceptTerms) {
+      setState(() {
+        _errorMessage = 'Debes aceptar los términos y condiciones';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Create user with Firebase
+      await _authService.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      // Update display name
+      await _authService.updateDisplayName(_nameController.text.trim());
+
+      // Navigate to onboarding
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const OnboardingScreen(),
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = _authService.getErrorMessage(e);
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   double _getPasswordStrength(String password) {
@@ -230,6 +272,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
               color: AppColors.textSecondary,
             ),
           ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: AppColors.warning, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 13,
+                        color: AppColors.warning,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           // Name field
           _buildTextField(
@@ -387,28 +455,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    text: 'Acepto los ',
-                    style: Theme.of(context).textTheme.bodySmall,
-                    children: [
-                      TextSpan(
-                        text: 'Términos y Condiciones',
+                child: Wrap(
+                  children: [
+                    Text(
+                      'Acepto los ',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TermsConditionsScreen(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Terminos y Condiciones',
                         style: GoogleFonts.montserrat(
+                          fontSize: 12,
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.primary,
                         ),
                       ),
-                      const TextSpan(text: ' y la '),
-                      TextSpan(
-                        text: 'Política de Privacidad',
+                    ),
+                    Text(
+                      ' y la ',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PrivacyPolicyScreen(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Politica de Privacidad',
                         style: GoogleFonts.montserrat(
+                          fontSize: 12,
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.primary,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ],

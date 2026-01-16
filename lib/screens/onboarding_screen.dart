@@ -4,9 +4,7 @@ import '../theme/app_colors.dart';
 import 'body_check_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key, required this.onRegisterSuccess});
-
-  final VoidCallback onRegisterSuccess;
+  const OnboardingScreen({super.key});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -106,12 +104,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           context,
           MaterialPageRoute(
             builder: (_) => BodyCheckScreen(
-              onContinue: widget.onRegisterSuccess,
+              onContinue: _finishOnboarding,
             ),
           ),
         );
       }
     }
+  }
+
+  void _finishOnboarding() {
+    // Navigate back to root - AuthWrapper will show AppShell since user is authenticated
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
@@ -320,7 +323,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           context,
           MaterialPageRoute(
             builder: (_) => BodyCheckScreen(
-              onContinue: widget.onRegisterSuccess,
+              onContinue: _finishOnboarding,
             ),
           ),
         );
