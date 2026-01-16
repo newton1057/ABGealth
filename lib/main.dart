@@ -9,6 +9,7 @@ import 'screens/prevention_screen.dart';
 import 'screens/reports_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
+import 'services/language_controller.dart';
 import 'widgets/modern_glass_card.dart';
 
 void main() async {
@@ -19,16 +20,32 @@ void main() async {
   runApp(const DemoodApp());
 }
 
-class DemoodApp extends StatelessWidget {
+class DemoodApp extends StatefulWidget {
   const DemoodApp({super.key});
 
   @override
+  State<DemoodApp> createState() => _DemoodAppState();
+}
+
+class _DemoodAppState extends State<DemoodApp> {
+  final LanguageController _languageController = LanguageController();
+
+  @override
+  void dispose() {
+    _languageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'demood',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.build(),
-      home: const AuthWrapper(),
+    return LanguageScope(
+      controller: _languageController,
+      child: MaterialApp(
+        title: 'demood',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.build(),
+        home: const AuthWrapper(),
+      ),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_colors.dart';
 import '../services/auth_service.dart';
+import '../services/language_controller.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -18,8 +19,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _authService = AuthService();
   bool _isLoading = false;
   bool _emailSent = false;
+  late LanguageController _languageController;
 
   static const _mintBright = Color(0xFF55FFA9);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _languageController = LanguageScope.of(context);
+  }
 
   @override
   void dispose() {
@@ -70,7 +78,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const SizedBox(height: 20),
                   // Title
                   Text(
-                    'Error',
+                    _text(
+                      es: 'Error',
+                      en: 'Error',
+                    ),
                     style: GoogleFonts.montserrat(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -102,7 +113,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                       ),
                       child: Text(
-                        'Intentar de nuevo',
+                        _text(
+                          es: 'Intentar de nuevo',
+                          en: 'Try again',
+                        ),
                         style: GoogleFonts.montserrat(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -134,17 +148,30 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       });
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        _showErrorBottomSheet(_authService.getErrorMessage(e));
+        _showErrorBottomSheet(
+          _authService.getErrorMessage(e, isEnglish: _isEnglish),
+        );
       }
     } catch (e) {
       if (mounted) {
-        _showErrorBottomSheet('Ocurrió un error. Intenta de nuevo.');
+        _showErrorBottomSheet(
+          _text(
+            es: 'Ocurrió un error. Intenta de nuevo.',
+            en: 'Something went wrong. Please try again.',
+          ),
+        );
       }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  bool get _isEnglish => _languageController.isEnglish;
+
+  String _text({required String es, required String en}) {
+    return _isEnglish ? en : es;
   }
 
   @override
@@ -266,7 +293,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(width: 16),
         Text(
-          'Recuperar contraseña',
+          _text(
+            es: 'Recuperar contraseña',
+            en: 'Reset password',
+          ),
           style: GoogleFonts.montserrat(
             fontSize: 22,
             fontWeight: FontWeight.w700,
@@ -300,7 +330,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            '¿Olvidaste tu contraseña?',
+            _text(
+              es: '¿Olvidaste tu contraseña?',
+              en: 'Forgot your password?',
+            ),
             style: GoogleFonts.montserrat(
               fontSize: 24,
               fontWeight: FontWeight.w700,
@@ -309,7 +342,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Ingresa tu correo electrónico y te enviaremos las instrucciones para restablecer tu contraseña.',
+            _text(
+              es:
+                  'Ingresa tu correo electrónico y te enviaremos las instrucciones para restablecer tu contraseña.',
+              en:
+                  "Enter your email and we'll send you instructions to reset your password.",
+            ),
             style: GoogleFonts.montserrat(
               fontSize: 14,
               color: AppColors.textSecondary,
@@ -320,16 +358,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           // Email field
           _buildTextField(
             controller: _emailController,
-            label: 'Correo electrónico',
-            hint: 'tu@email.com',
+            label: _text(
+              es: 'Correo electrónico',
+              en: 'Email',
+            ),
+            hint: _text(
+              es: 'tu@email.com',
+              en: 'you@email.com',
+            ),
             prefixIcon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Ingresa tu correo electrónico';
+                return _text(
+                  es: 'Ingresa tu correo electrónico',
+                  en: 'Enter your email',
+                );
               }
               if (!value.contains('@') || !value.contains('.')) {
-                return 'Ingresa un correo válido';
+                return _text(
+                  es: 'Ingresa un correo válido',
+                  en: 'Enter a valid email',
+                );
               }
               return null;
             },
@@ -369,7 +419,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     )
                   : Text(
-                      'Enviar instrucciones',
+                      _text(
+                        es: 'Enviar instrucciones',
+                        en: 'Send instructions',
+                      ),
                       style: GoogleFonts.montserrat(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -384,7 +437,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'Volver al inicio de sesión',
+                _text(
+                  es: 'Volver al inicio de sesión',
+                  en: 'Back to sign in',
+                ),
                 style: GoogleFonts.montserrat(
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
@@ -417,7 +473,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 28),
         Text(
-          '¡Correo enviado!',
+          _text(
+            es: '¡Correo enviado!',
+            en: 'Email sent!',
+          ),
           style: GoogleFonts.montserrat(
             fontSize: 24,
             fontWeight: FontWeight.w700,
@@ -427,7 +486,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Hemos enviado las instrucciones para restablecer tu contraseña a:',
+          _text(
+            es:
+                'Hemos enviado las instrucciones para restablecer tu contraseña a:',
+            en: 'We sent reset instructions to:',
+          ),
           style: GoogleFonts.montserrat(
             fontSize: 14,
             color: AppColors.textSecondary,
@@ -452,7 +515,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 24),
         Text(
-          'Revisa tu bandeja de entrada y sigue las instrucciones. Si no recibes el correo, revisa tu carpeta de spam.',
+          _text(
+            es:
+                'Revisa tu bandeja de entrada y sigue las instrucciones. Si no recibes el correo, revisa tu carpeta de spam.',
+            en:
+                "Check your inbox and follow the instructions. If you don't receive the email, check your spam folder.",
+          ),
           style: GoogleFonts.montserrat(
             fontSize: 12,
             color: AppColors.textSecondary,
@@ -473,7 +541,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
             ),
             child: Text(
-              'Volver al inicio de sesión',
+              _text(
+                es: 'Volver al inicio de sesión',
+                en: 'Back to sign in',
+              ),
               style: GoogleFonts.montserrat(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -488,7 +559,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             setState(() => _emailSent = false);
           },
           child: Text(
-            '¿No recibiste el correo? Reintentar',
+            _text(
+              es: '¿No recibiste el correo? Reintentar',
+              en: "Didn't receive the email? Retry",
+            ),
             style: GoogleFonts.montserrat(
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,

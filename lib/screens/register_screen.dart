@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_colors.dart';
 import '../services/auth_service.dart';
+import '../services/language_controller.dart';
 import 'onboarding_screen.dart';
 import 'terms_conditions_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -33,6 +34,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _acceptTerms = false;
   bool _isLoading = false;
   String? _errorMessage;
+  late LanguageController _languageController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _languageController = LanguageScope.of(context);
+  }
 
   @override
   void dispose() {
@@ -48,7 +56,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (!_acceptTerms) {
       setState(() {
-        _errorMessage = 'Debes aceptar los términos y condiciones';
+        _errorMessage = _text(
+          es: 'Debes aceptar los términos y condiciones',
+          en: 'You must accept the terms and conditions',
+        );
       });
       return;
     }
@@ -79,11 +90,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _errorMessage = _authService.getErrorMessage(e);
+        _errorMessage = _authService.getErrorMessage(
+          e,
+          isEnglish: _isEnglish,
+        );
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
+        _errorMessage = _text(
+          es: 'Ocurrió un error. Intenta de nuevo.',
+          en: 'Something went wrong. Please try again.',
+        );
       });
     } finally {
       if (mounted) {
@@ -110,9 +127,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   String _getStrengthText(double strength) {
-    if (strength < 0.3) return 'Débil';
-    if (strength < 0.6) return 'Media';
-    return 'Fuerte';
+    if (strength < 0.3) {
+      return _text(es: 'Débil', en: 'Weak');
+    }
+    if (strength < 0.6) {
+      return _text(es: 'Media', en: 'Medium');
+    }
+    return _text(es: 'Fuerte', en: 'Strong');
+  }
+
+  bool get _isEnglish => _languageController.isEnglish;
+
+  String _text({required String es, required String en}) {
+    return _isEnglish ? en : es;
   }
 
   @override
@@ -239,7 +266,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         const SizedBox(width: 16),
         Text(
-          'Crear cuenta',
+          _text(
+            es: 'Crear cuenta',
+            en: 'Create account',
+          ),
           style: GoogleFonts.montserrat(
             fontSize: 24,
             fontWeight: FontWeight.w700,
@@ -257,7 +287,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Bienvenido',
+            _text(
+              es: 'Bienvenido',
+              en: 'Welcome',
+            ),
             style: GoogleFonts.montserrat(
               fontSize: 24,
               fontWeight: FontWeight.w700,
@@ -266,7 +299,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Completa tus datos para registrarte',
+            _text(
+              es: 'Completa tus datos para registrarte',
+              en: 'Complete your details to sign up',
+            ),
             style: GoogleFonts.montserrat(
               fontSize: 14,
               color: AppColors.textSecondary,
@@ -302,12 +338,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Name field
           _buildTextField(
             controller: _nameController,
-            label: 'Nombre completo',
-            hint: 'Tu nombre',
+            label: _text(
+              es: 'Nombre completo',
+              en: 'Full name',
+            ),
+            hint: _text(
+              es: 'Tu nombre',
+              en: 'Your name',
+            ),
             prefixIcon: Icons.person_outline,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Ingresa tu nombre';
+                return _text(
+                  es: 'Ingresa tu nombre',
+                  en: 'Enter your name',
+                );
               }
               return null;
             },
@@ -316,16 +361,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Email field
           _buildTextField(
             controller: _emailController,
-            label: 'Correo electrónico',
-            hint: 'tu@email.com',
+            label: _text(
+              es: 'Correo electrónico',
+              en: 'Email',
+            ),
+            hint: _text(
+              es: 'tu@email.com',
+              en: 'you@email.com',
+            ),
             prefixIcon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Ingresa tu correo electrónico';
+                return _text(
+                  es: 'Ingresa tu correo electrónico',
+                  en: 'Enter your email',
+                );
               }
               if (!value.contains('@') || !value.contains('.')) {
-                return 'Ingresa un correo válido';
+                return _text(
+                  es: 'Ingresa un correo válido',
+                  en: 'Enter a valid email',
+                );
               }
               return null;
             },
@@ -334,7 +391,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Password field
           _buildTextField(
             controller: _passwordController,
-            label: 'Contraseña',
+            label: _text(
+              es: 'Contraseña',
+              en: 'Password',
+            ),
             hint: '••••••••',
             prefixIcon: Icons.lock_outline,
             obscureText: _obscurePassword,
@@ -352,10 +412,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Ingresa una contraseña';
+                return _text(
+                  es: 'Ingresa una contraseña',
+                  en: 'Enter a password',
+                );
               }
               if (value.length < 6) {
-                return 'La contraseña debe tener al menos 6 caracteres';
+                return _text(
+                  es: 'La contraseña debe tener al menos 6 caracteres',
+                  en: 'Password must be at least 6 characters',
+                );
               }
               return null;
             },
@@ -407,7 +473,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Confirm password field
           _buildTextField(
             controller: _confirmPasswordController,
-            label: 'Confirmar contraseña',
+            label: _text(
+              es: 'Confirmar contraseña',
+              en: 'Confirm password',
+            ),
             hint: '••••••••',
             prefixIcon: Icons.lock_outline,
             obscureText: _obscureConfirmPassword,
@@ -426,10 +495,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Confirma tu contraseña';
+                return _text(
+                  es: 'Confirma tu contraseña',
+                  en: 'Confirm your password',
+                );
               }
               if (value != _passwordController.text) {
-                return 'Las contraseñas no coinciden';
+                return _text(
+                  es: 'Las contraseñas no coinciden',
+                  en: 'Passwords do not match',
+                );
               }
               return null;
             },
@@ -458,7 +533,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Wrap(
                   children: [
                     Text(
-                      'Acepto los ',
+                      _text(
+                        es: 'Acepto los ',
+                        en: 'I accept the ',
+                      ),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     GestureDetector(
@@ -471,7 +549,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         );
                       },
                       child: Text(
-                        'Terminos y Condiciones',
+                        _text(
+                          es: 'Terminos y Condiciones',
+                          en: 'Terms and Conditions',
+                        ),
                         style: GoogleFonts.montserrat(
                           fontSize: 12,
                           color: AppColors.primary,
@@ -482,7 +563,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     Text(
-                      ' y la ',
+                      _text(
+                        es: ' y la ',
+                        en: ' and the ',
+                      ),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     GestureDetector(
@@ -495,7 +579,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         );
                       },
                       child: Text(
-                        'Politica de Privacidad',
+                        _text(
+                          es: 'Politica de Privacidad',
+                          en: 'Privacy Policy',
+                        ),
                         style: GoogleFonts.montserrat(
                           fontSize: 12,
                           color: AppColors.primary,
@@ -545,7 +632,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     )
                   : Text(
-                      'Crear cuenta',
+                      _text(
+                        es: 'Crear cuenta',
+                        en: 'Create account',
+                      ),
                       style: GoogleFonts.montserrat(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -633,7 +723,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          '¿Ya tienes cuenta? ',
+          _text(
+            es: '¿Ya tienes cuenta? ',
+            en: 'Already have an account? ',
+          ),
           style: GoogleFonts.montserrat(
             fontSize: 14,
             color: AppColors.textPrimary,
@@ -642,7 +735,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text(
-            'Iniciar sesión',
+            _text(
+              es: 'Iniciar sesión',
+              en: 'Sign in',
+            ),
             style: GoogleFonts.montserrat(
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,

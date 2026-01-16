@@ -12,7 +12,20 @@
           "package_name": "com.abgealth.abgealth"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1093507790060-r4dq981g1p42u16immc1qs8tfqcb7ded.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abgealth.abgealth",
+            "certificate_hash": "f66a08a336837bed3d11012413200dc3eff4ab7a"
+          }
+        },
+        {
+          "client_id": "1093507790060-lt0vb8h1v0hg10p577t9bkk14ge15qc0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA0MyM4LOJ5yCTpo3K9T7za6Gp2H5mDxCQ"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1093507790060-lt0vb8h1v0hg10p577t9bkk14ge15qc0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1093507790060-macnvqbchuorc45rkcmin2u5im4kbc4o.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.abgealth.abgealth"
+              }
+            }
+          ]
         }
       }
     }

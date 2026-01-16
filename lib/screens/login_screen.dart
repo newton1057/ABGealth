@@ -1,9 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:country_flags/country_flags.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_colors.dart';
 import '../services/auth_service.dart';
+import '../services/language_controller.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -27,7 +29,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _isEnglish = false;
+  bool _isGoogleLoading = false;
+  late LanguageController _languageController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _languageController = LanguageScope.of(context);
+  }
 
   @override
   void dispose() {
@@ -168,16 +177,51 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    if (_isGoogleLoading || _isLoading) return;
+
+    setState(() => _isGoogleLoading = true);
+
+    try {
+      final result = await _authService.signInWithGoogle();
+      if (result == null) {
+        return;
+      }
+      // Navigation is handled automatically by AuthWrapper
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        _showErrorBottomSheet(
+          _authService.getErrorMessage(e, isEnglish: _isEnglish),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorBottomSheet(
+          _text(
+            es: 'Ocurrió un error. Intenta de nuevo.',
+            en: 'Something went wrong. Please try again.',
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
+      }
+    }
+  }
+
   String _text({required String es, required String en}) {
     return _isEnglish ? en : es;
   }
+
+  bool get _isEnglish => _languageController.isEnglish;
 
   String get _languageToggleLabel {
     return _isEnglish ? 'Switch to Spanish' : 'Cambiar a inglés';
   }
 
   void _toggleLanguage() {
-    setState(() => _isEnglish = !_isEnglish);
+    _languageController.toggle();
   }
 
   @override
@@ -353,57 +397,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildFlag({required bool isEnglish}) {
-    return ClipOval(
-      child: SizedBox(
+    final code = isEnglish ? 'US' : 'MX';
+
+    return CountryFlag.fromCountryCode(
+      code,
+      theme: const ImageTheme(
         width: 28,
         height: 28,
-        child: isEnglish ? _buildEnglishFlag() : _buildSpanishFlag(),
+        shape: Circle(),
       ),
-    );
-  }
-
-  Widget _buildSpanishFlag() {
-    const red = Color(0xFFAA151B);
-    const yellow = Color(0xFFF1BF00);
-
-    return Column(
-      children: const [
-        Expanded(child: ColoredBox(color: red)),
-        Expanded(flex: 2, child: ColoredBox(color: yellow)),
-        Expanded(child: ColoredBox(color: red)),
-      ],
-    );
-  }
-
-  Widget _buildEnglishFlag() {
-    const red = Color(0xFFCF142B);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final thickness = constraints.maxWidth * 0.28;
-
-        return Stack(
-          children: [
-            const ColoredBox(color: Colors.white),
-            Align(
-              alignment: Alignment.center,
-              child: SizedBox(
-                width: thickness,
-                height: constraints.maxHeight,
-                child: const ColoredBox(color: red),
-              ),
-            ),
-            Align(
-              alignment: Alignment.center,
-              child: SizedBox(
-                height: thickness,
-                width: constraints.maxWidth,
-                child: const ColoredBox(color: red),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -546,7 +548,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
               child: FilledButton(
-                onPressed: _isLoading ? null : _handleLogin,
+                onPressed:
+                    (_isLoading || _isGoogleLoading) ? null : _handleLogin,
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -646,7 +649,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
                 // Google Button
                 InkWell(
-                  onTap: () {},
+                  onTap: (_isLoading || _isGoogleLoading)
+                      ? null
+                      : _handleGoogleSignIn,
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -677,6 +682,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: AppColors.textPrimary,
                           ),
                         ),
+                        if (_isGoogleLoading) ...[
+                          const SizedBox(width: 12),
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

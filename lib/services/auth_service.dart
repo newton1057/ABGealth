@@ -1,7 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  Future<void>? _googleSignInInit;
+
+  Future<void> _ensureGoogleSignInInitialized() {
+    return _googleSignInInit ??= _googleSignIn.initialize();
+  }
 
   // Stream of auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -31,6 +38,27 @@ class AuthService {
     );
   }
 
+  // Sign in with Google
+  Future<UserCredential?> signInWithGoogle() async {
+    await _ensureGoogleSignInInitialized();
+    try {
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
+
+      return await _auth.signInWithCredential(credential);
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled ||
+          e.code == GoogleSignInExceptionCode.interrupted) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
   // Update display name
   Future<void> updateDisplayName(String displayName) async {
     await _auth.currentUser?.updateDisplayName(displayName);
@@ -45,6 +73,8 @@ class AuthService {
 
   // Sign out
   Future<void> signOut() async {
+    await _ensureGoogleSignInInitialized();
+    await _googleSignIn.signOut();
     await _auth.signOut();
   }
 
@@ -52,6 +82,12 @@ class AuthService {
   String getErrorMessage(FirebaseAuthException e, {bool isEnglish = false}) {
     if (isEnglish) {
       switch (e.code) {
+        case 'account-exists-with-different-credential':
+          return 'An account exists with this email using another sign-in method.';
+        case 'credential-already-in-use':
+          return 'These credentials are already in use.';
+        case 'network-request-failed':
+          return 'Network error. Check your connection.';
         case 'user-not-found':
           return 'No account exists with this email.';
         case 'wrong-password':
@@ -76,6 +112,12 @@ class AuthService {
     }
 
     switch (e.code) {
+      case 'account-exists-with-different-credential':
+        return 'Ya existe una cuenta con este correo usando otro método.';
+      case 'credential-already-in-use':
+        return 'Estas credenciales ya están en uso.';
+      case 'network-request-failed':
+        return 'Error de red. Verifica tu conexión.';
       case 'user-not-found':
         return 'No existe una cuenta con este correo electrónico.';
       case 'wrong-password':
